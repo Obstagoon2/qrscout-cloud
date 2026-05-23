@@ -35,7 +35,7 @@ Add these values to your local `.env` file:
 ```env
 VITE_TBA_API_KEY=your_tba_api_key_here
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key
+VITE_SUPABASE_ANON_KEY=your_legacy_anon_jwt
 VITE_SUPABASE_TABLE=scouting_submissions
 VITE_SUPABASE_SUBMIT_FUNCTION=scouting-submit
 ```
@@ -56,6 +56,8 @@ create table public.scouting_submissions (
   record_data jsonb not null
 );
 ```
+
+Use the legacy anon JWT for `VITE_SUPABASE_ANON_KEY` in this setup, because the protected Edge Function expects a JWT-style bearer token.
 
 For browser access, keep `select` public if you want the in-app analysis page to load event data directly.
 For writes, this project now uses a Supabase Edge Function so the browser does not insert directly into the table.
