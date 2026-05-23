@@ -43,6 +43,19 @@ function getHeaders() {
   };
 }
 
+function getFunctionHeaders() {
+  const config = getCloudConfig();
+
+  if (!config.url || !config.key) {
+    throw new Error('Cloud sync is not configured.');
+  }
+
+  return {
+    apikey: config.key,
+    'Content-Type': 'application/json',
+  };
+}
+
 function rowToSubmission(row: CloudRow): SubmissionRecord {
   return {
     localId: row.local_id || crypto.randomUUID(),
@@ -74,11 +87,11 @@ export async function submitSubmissionToCloud(record: SubmissionRecord) {
   const response = await fetch(
     `${config.url}/functions/v1/${config.submitFunction}`,
     {
-    method: 'POST',
-    headers: {
-      ...getHeaders(),
+      method: 'POST',
+      headers: {
+        ...getFunctionHeaders(),
         Prefer: 'return=representation',
-    },
+      },
       body: JSON.stringify({
         localId: record.localId,
         teamNumber: record.teamNumber ?? null,
