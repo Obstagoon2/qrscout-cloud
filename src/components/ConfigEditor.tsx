@@ -67,6 +67,7 @@ export function ConfigEditor(props: ConfigEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [url, setUrl] = useState<string>('');
+  const schemaUrl = `${window.location.origin}${import.meta.env.BASE_URL}schema.json`;
 
   useEffect(() => {
     setCurrentConfigText(JSON.stringify(config, null, 2));
@@ -77,13 +78,13 @@ export function ConfigEditor(props: ConfigEditorProps) {
       validate: true,
       schemas: [
         {
-          uri: 'https://frc2713.github.io/QRScout/schema.json',
+          uri: schemaUrl,
           fileMatch: ['*'],
           schema,
         },
       ],
     });
-  }, [monaco]);
+  }, [monaco, schemaUrl]);
 
   const handleUploadClick = useCallback(() => {
     fileInputRef.current?.click();

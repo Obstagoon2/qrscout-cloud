@@ -24,7 +24,7 @@ A QR Code-based scouting system for FRC
 
 ## Getting started
 
-QRScout is a web app. To open it, all 3you have to do is visit https://frc2713.github.io/QRScout/
+QRScout is a web app. To open it, all 3you have to do is visit https://obstagoon2.github.io/qrscout-cloud/
 
 ### Cloud-first setup
 
@@ -59,6 +59,17 @@ create table public.scouting_submissions (
 
 For browser access, keep `select` public if you want the in-app analysis page to load event data directly.
 For writes, this project now uses a Supabase Edge Function so the browser does not insert directly into the table.
+
+### GitHub Pages deployment
+
+This repo is configured to deploy with GitHub Actions to GitHub Pages.
+
+If the site is not live yet:
+
+1. Open [Obstagoon2/qrscout-cloud](https://github.com/Obstagoon2/qrscout-cloud).
+2. Go to `Settings -> Pages`.
+3. Set `Source` to `GitHub Actions`.
+4. Push to `main` or rerun the `Deploy static content to Pages` workflow.
 
 QRScout takes in form data inputed durring a FRC match about the robots playing it, and outputs a QR code with all of that data, in a list seperated by default by tabs. The QR code generated can then be scanned and inputted into something like a Microsoft Excel or Google Sheets spreadsheet, and analyzed.
 

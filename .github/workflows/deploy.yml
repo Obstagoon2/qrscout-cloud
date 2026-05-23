@@ -23,6 +23,10 @@ concurrency:
 env:
   VITE_STATSIG_CLIENT_KEY: client-FccOCTznRdYyGr7cx3vJoyoWyO1BTqBzv6S2g1lYPvB
   VITE_TBA_API_KEY: ${{ secrets.TBA_API_KEY }}
+  VITE_SUPABASE_URL: https://wcnxazejwiojoxewrgka.supabase.co
+  VITE_SUPABASE_ANON_KEY: sb_publishable_mV-B6bZX0G2J901HEpjpeA_giL0W2E9
+  VITE_SUPABASE_TABLE: scouting_submissions
+  VITE_SUPABASE_SUBMIT_FUNCTION: scouting-submit
 
 jobs:
   # Single deploy job since we're just deploying
