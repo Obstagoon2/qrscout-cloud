@@ -17,12 +17,15 @@ function getCloudConfig() {
   const url = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
   const table = import.meta.env.VITE_SUPABASE_TABLE || 'scouting_submissions';
+  const submitFunction =
+    import.meta.env.VITE_SUPABASE_SUBMIT_FUNCTION || 'scouting-submit';
 
   return {
     enabled: Boolean(url && key),
     url,
     key,
     table,
+    submitFunction,
   };
 }
 
@@ -68,32 +71,35 @@ export async function submitSubmissionToCloud(record: SubmissionRecord) {
     throw new Error('Missing VITE_SUPABASE_URL.');
   }
 
-  const response = await fetch(`${config.url}/rest/v1/${config.table}`, {
+  const response = await fetch(
+    `${config.url}/functions/v1/${config.submitFunction}`,
+    {
     method: 'POST',
     headers: {
       ...getHeaders(),
-      Prefer: 'return=representation',
+        Prefer: 'return=representation',
     },
-    body: JSON.stringify({
-      local_id: record.localId,
-      team_number: record.teamNumber ?? null,
-      match_number: record.matchNumber ?? null,
-      scouter: record.scouter ?? null,
-      page_title: record.pageTitle,
-      submitted_at: record.createdAt,
-      qr_payload: record.qrPayload,
-      fields: record.fields,
-      record_data: record.recordData,
-    }),
-  });
+      body: JSON.stringify({
+        localId: record.localId,
+        teamNumber: record.teamNumber ?? null,
+        matchNumber: record.matchNumber ?? null,
+        scouter: record.scouter ?? null,
+        pageTitle: record.pageTitle,
+        createdAt: record.createdAt,
+        qrPayload: record.qrPayload,
+        fields: record.fields,
+        recordData: record.recordData,
+      }),
+    },
+  );
 
   if (!response.ok) {
     const message = await response.text();
     throw new Error(message || 'Cloud submission failed.');
   }
 
-  const rows = (await response.json()) as CloudRow[];
-  return rowToSubmission(rows[0] || {});
+  const row = (await response.json()) as CloudRow;
+  return rowToSubmission(row);
 }
 
 export async function fetchCloudSubmissions() {

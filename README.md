@@ -37,6 +37,7 @@ VITE_TBA_API_KEY=your_tba_api_key_here
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your_anon_key
 VITE_SUPABASE_TABLE=scouting_submissions
+VITE_SUPABASE_SUBMIT_FUNCTION=scouting-submit
 ```
 
 Create a table in Supabase like this:
@@ -56,7 +57,8 @@ create table public.scouting_submissions (
 );
 ```
 
-For browser access, enable `insert` and `select` for your client policy on this table.
+For browser access, keep `select` public if you want the in-app analysis page to load event data directly.
+For writes, this project now uses a Supabase Edge Function so the browser does not insert directly into the table.
 
 QRScout takes in form data inputed durring a FRC match about the robots playing it, and outputs a QR code with all of that data, in a list seperated by default by tabs. The QR code generated can then be scanned and inputted into something like a Microsoft Excel or Google Sheets spreadsheet, and analyzed.
 
