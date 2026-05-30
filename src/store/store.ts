@@ -14,6 +14,36 @@ import { createStore } from './createStore';
 
 export type { Result };
 
+export type AppPage = 'scout' | 'analysis' | 'setup';
+
+export interface OrganizationMember {
+  id: string;
+  name: string;
+  initials: string;
+  role: 'lead' | 'scouter';
+}
+
+export interface ScoutingAssignment {
+  id: string;
+  matchNumber: number;
+  teamNumber: number;
+  robotPosition: string;
+  alliance: 'red' | 'blue';
+  station: number;
+  scouterId?: string;
+  scouterInitials?: string;
+  createdAt: string;
+}
+
+export interface OrganizationSetup {
+  name: string;
+  code: string;
+  eventName: string;
+  members: OrganizationMember[];
+  signedInMemberId?: string;
+  assignments: ScoutingAssignment[];
+}
+
 /**
  * Generates field values for a config, including dynamic fields for action-tracker inputs.
  * For action-tracker, creates _count and _times fields for each action.
@@ -68,8 +98,9 @@ export interface QRScoutState {
   fieldValues: { code: string; value: any }[];
   showQR: boolean;
   matchData?: MatchData[];
-  activePage: 'scout' | 'analysis';
+  activePage: AppPage;
   submissions: SubmissionRecord[];
+  organization: OrganizationSetup;
   cloudSync: {
     isSyncing: boolean;
     lastSyncedAt?: string;
@@ -83,6 +114,13 @@ const initialState: QRScoutState = {
   showQR: false,
   activePage: 'scout',
   submissions: [],
+  organization: {
+    name: 'QRScout Cloud',
+    code: '2713',
+    eventName: '',
+    members: [],
+    assignments: [],
+  },
   cloudSync: {
     isSyncing: false,
   },
@@ -92,12 +130,21 @@ export const useQRScoutState = createStore<QRScoutState>(
   initialState,
   'qrScout',
   {
-    version: 5,
+    version: 6,
     migrate: persistedState => ({
       ...initialState,
       ...(persistedState as Partial<QRScoutState>),
       activePage: (persistedState as Partial<QRScoutState>)?.activePage || 'scout',
       submissions: (persistedState as Partial<QRScoutState>)?.submissions || [],
+      organization: {
+        ...initialState.organization,
+        ...(persistedState as Partial<QRScoutState>)?.organization,
+        members:
+          (persistedState as Partial<QRScoutState>)?.organization?.members || [],
+        assignments:
+          (persistedState as Partial<QRScoutState>)?.organization
+            ?.assignments || [],
+      },
       cloudSync: {
         isSyncing: false,
         lastSyncedAt: (persistedState as Partial<QRScoutState>)?.cloudSync?.lastSyncedAt,
@@ -320,8 +367,198 @@ export function buildSubmissionRecord(): SubmissionRecord {
   };
 }
 
-export function setActivePage(activePage: 'scout' | 'analysis') {
+export function setActivePage(activePage: AppPage) {
   useQRScoutState.setState({ activePage });
+}
+
+export function setOrganizationDetails(
+  updates: Partial<Pick<OrganizationSetup, 'name' | 'code' | 'eventName'>>,
+) {
+  useQRScoutState.setState(state => ({
+    organization: {
+      ...state.organization,
+      ...updates,
+    },
+  }));
+}
+
+export function addOrganizationMember(member: Omit<OrganizationMember, 'id'>) {
+  const initials = member.initials.trim().toUpperCase();
+
+  if (!initials) {
+    return;
+  }
+
+  useQRScoutState.setState(state => {
+    const existing = state.organization.members.find(
+      current => current.initials.toUpperCase() === initials,
+    );
+    const nextMember = {
+      ...member,
+      initials,
+      name: member.name.trim() || initials,
+      id: existing?.id || crypto.randomUUID(),
+    };
+    const members = existing
+      ? state.organization.members.map(current =>
+          current.id === existing.id ? nextMember : current,
+        )
+      : [...state.organization.members, nextMember];
+
+    return {
+      organization: {
+        ...state.organization,
+        members,
+        signedInMemberId: state.organization.signedInMemberId || nextMember.id,
+      },
+    };
+  });
+}
+
+export function removeOrganizationMember(memberId: string) {
+  useQRScoutState.setState(state => ({
+    organization: {
+      ...state.organization,
+      members: state.organization.members.filter(member => member.id !== memberId),
+      assignments: state.organization.assignments.map(assignment =>
+        assignment.scouterId === memberId
+          ? {
+              ...assignment,
+              scouterId: undefined,
+              scouterInitials: undefined,
+            }
+          : assignment,
+      ),
+      signedInMemberId:
+        state.organization.signedInMemberId === memberId
+          ? undefined
+          : state.organization.signedInMemberId,
+    },
+  }));
+}
+
+export function signInOrganizationMember(memberId: string) {
+  const member = useQRScoutState
+    .getState()
+    .organization.members.find(current => current.id === memberId);
+
+  useQRScoutState.setState(state => ({
+    organization: {
+      ...state.organization,
+      signedInMemberId: memberId,
+    },
+  }));
+
+  if (member) {
+    updateValue('scouter', member.initials);
+    window.dispatchEvent(
+      new CustomEvent('applyScoutingAssignment', {
+        detail: { scouter: member.initials },
+      }),
+    );
+  }
+}
+
+function teamNumberFromKey(teamKey: string) {
+  const parsed = Number(teamKey.replace('frc', ''));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+export function generateScoutingAssignments() {
+  const state = useQRScoutState.getState();
+  const matches =
+    state.matchData
+      ?.filter(match => match.comp_level === 'qm')
+      .sort((a, b) => a.match_number - b.match_number) || [];
+  const scouters = state.organization.members.filter(
+    member => member.role === 'scouter',
+  );
+
+  if (matches.length === 0) {
+    throw new Error('Load event matches before generating assignments.');
+  }
+
+  if (scouters.length === 0) {
+    throw new Error('Add at least one scouter before generating assignments.');
+  }
+
+  const createdAt = new Date().toISOString();
+  let slotIndex = 0;
+  const assignments = matches.flatMap(match => {
+    const red = match.alliances.red.team_keys.map((teamKey, index) => ({
+      teamNumber: teamNumberFromKey(teamKey),
+      robotPosition: `R${index + 1}`,
+      alliance: 'red' as const,
+      station: index + 1,
+    }));
+    const blue = match.alliances.blue.team_keys.map((teamKey, index) => ({
+      teamNumber: teamNumberFromKey(teamKey),
+      robotPosition: `B${index + 1}`,
+      alliance: 'blue' as const,
+      station: index + 1,
+    }));
+
+    return [...red, ...blue]
+      .filter(slot => slot.teamNumber != null)
+      .map(slot => {
+        const scouter = scouters[slotIndex % scouters.length];
+        slotIndex += 1;
+
+        return {
+          id: `${match.event_key}-qm${match.match_number}-${slot.robotPosition}`,
+          matchNumber: match.match_number,
+          teamNumber: slot.teamNumber as number,
+          robotPosition: slot.robotPosition,
+          alliance: slot.alliance,
+          station: slot.station,
+          scouterId: scouter.id,
+          scouterInitials: scouter.initials,
+          createdAt,
+        };
+      });
+  });
+
+  useQRScoutState.setState(state => ({
+    organization: {
+      ...state.organization,
+      assignments,
+    },
+  }));
+}
+
+export function clearScoutingAssignments() {
+  useQRScoutState.setState(state => ({
+    organization: {
+      ...state.organization,
+      assignments: [],
+    },
+  }));
+}
+
+export function applyScoutingAssignment(assignment: ScoutingAssignment) {
+  const member = useQRScoutState
+    .getState()
+    .organization.members.find(current => current.id === assignment.scouterId);
+  const scouter = assignment.scouterInitials || member?.initials || '';
+  const robot = {
+    teamNumber: assignment.teamNumber,
+    robotPosition: assignment.robotPosition,
+  };
+
+  updateValue('scouter', scouter);
+  updateValue('matchNumber', assignment.matchNumber);
+  updateValue('robot', robot);
+
+  window.dispatchEvent(
+    new CustomEvent('applyScoutingAssignment', {
+      detail: {
+        scouter,
+        matchNumber: assignment.matchNumber,
+        robot,
+      },
+    }),
+  );
+  setActivePage('scout');
 }
 
 export function addSubmission(submission: SubmissionRecord) {

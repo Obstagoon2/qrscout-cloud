@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { Sections } from './components/Sections';
 import { CommitAndResetSection } from './components/Sections/CommitAndResetSection/CommitAndResetSection';
 import { ConfigSection } from './components/Sections/ConfigSection';
+import { OrganizationSetup } from './components/setup/OrganizationSetup';
 import { ThemeProvider } from './components/ThemeProvider';
 import { Button } from './components/ui/button';
 import { setActivePage, useQRScoutState } from './store/store';
@@ -59,6 +60,12 @@ export function App() {
             >
               Analysis
             </Button>
+            <Button
+              onClick={() => setActivePage('setup')}
+              variant={activePage === 'setup' ? 'default' : 'secondary'}
+            >
+              Team Setup
+            </Button>
           </div>
           <FloatingFormValue />
           {activePage === 'scout' ? (
@@ -69,8 +76,10 @@ export function App() {
                 <ConfigSection />
               </div>
             </form>
-          ) : (
+          ) : activePage === 'analysis' ? (
             <AnalysisDashboard />
+          ) : (
+            <OrganizationSetup />
           )}
         </main>
         <Footer />

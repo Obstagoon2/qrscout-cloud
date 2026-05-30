@@ -62,6 +62,19 @@ export default function TBAMatchNumberInput(props: ConfigurableInputProps) {
   );
 
   useEvent('resetFields', resetState);
+  useEvent<{
+    matchNumber?: number;
+  }>(
+    'applyScoutingAssignment',
+    useCallback(
+      (payload: { matchNumber?: number }) => {
+        if (payload.matchNumber != null) {
+          setValue(payload.matchNumber);
+        }
+      },
+      [],
+    ),
+  );
 
   useEffect(() => {
     updateValue(props.code, value);

@@ -7,6 +7,14 @@ interface AppEvent<PayloadType = unknown> extends Event {
 export interface CustomWindowEventMap extends WindowEventMap {
   /* Custom Event */
   resetFields: AppEvent<{force: boolean}>;
+  applyScoutingAssignment: AppEvent<{
+    scouter?: string;
+    matchNumber?: number;
+    robot?: {
+      teamNumber: number;
+      robotPosition: string;
+    };
+  }>;
 }
 
 export const useEvent = <PayloadType = unknown>(

@@ -36,6 +36,19 @@ export default function StringInput(props: ConfigurableInputProps) {
   );
 
   useEvent('resetFields', resetState);
+  useEvent<{
+    scouter?: string;
+  }>(
+    'applyScoutingAssignment',
+    useCallback(
+      (payload: { scouter?: string }) => {
+        if (props.code === 'scouter' && payload.scouter != null) {
+          setValue(payload.scouter);
+        }
+      },
+      [props.code],
+    ),
+  );
 
   useEffect(() => {
     updateValue(props.code, value);

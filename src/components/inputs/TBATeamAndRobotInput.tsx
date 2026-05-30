@@ -133,6 +133,19 @@ export default function TBATeamAndRobotInput(props: ConfigurableInputProps) {
   );
 
   useEvent('resetFields', resetState);
+  useEvent<{
+    robot?: TBATeamAndRobotData;
+  }>(
+    'applyScoutingAssignment',
+    useCallback(
+      (payload: { robot?: TBATeamAndRobotData }) => {
+        if (payload.robot) {
+          setValue(payload.robot);
+        }
+      },
+      [],
+    ),
+  );
 
   useEffect(() => {
     updateValue(props.code, value);
