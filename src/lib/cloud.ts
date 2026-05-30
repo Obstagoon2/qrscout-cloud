@@ -90,7 +90,6 @@ export async function submitSubmissionToCloud(record: SubmissionRecord) {
       method: 'POST',
       headers: {
         ...getFunctionHeaders(),
-        Prefer: 'return=representation',
       },
       body: JSON.stringify({
         localId: record.localId,
